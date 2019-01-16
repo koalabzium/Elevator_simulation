@@ -10,7 +10,7 @@ init(Drawing) when is_boolean(Drawing) ->
     SecondPID = spawn(elevators, second, [0]),
     ComputerPID = spawn(computer, manage, [FirstPID, SecondPID]),
     ErrorPID = spawn(el, error_handler, []),
-    MainPID = spawn(el, main_loop, []),
+    MainPID = spawn(el, main_loop, []),io:format("aaa"),
     ets:new(pids, [set, named_table, public]),
     ets:new(globals, [set, named_table, public]),
     ets:insert(pids, [{dpid, DrawingPID}, {cpid, ComputerPID}, {erpid, ErrorPID}, {buttons, []},{mpid, MainPID}]),
@@ -23,7 +23,6 @@ init(Drawing) when is_boolean(Drawing) ->
 
 start()->
         [{erpid, ErrorPID}] = ets:lookup(pids, erpid),
-        [{dpid, DrawingPID}] = ets:lookup(pids, dpid),
         [{mpid, MainPID}] = ets:lookup(pids, mpid),
         FloorsAmount = io:fread("Podaj liczbe pieter: ", "~d"),
 		
@@ -31,9 +30,7 @@ start()->
             {ok, [Floors]} -> 
                 if Floors > 0 ->
                     ets:insert(globals, [{floors, Floors}]),
-                    MainPID ! {loop, 5000000000},
-                    
-                    DrawingPID ! {draw_elevator, 0,0},
+                    MainPID ! {loop},
                     spawn_buttons(Floors);
                 true ->
                     ErrorPID ! {negative_floor_amount}
@@ -56,13 +53,19 @@ error_handler() ->
     end.
 
 main_loop() ->
-   
+        io:format("AaaaaaA"),
     receive
-        {loop, Time} -> loop(Time)       
+        {loop} ->
+                io:format("looop"),
+                io:format(os:cmd(clear)),
+             Innn = io:fread("Naciśnij dowolny klawisz, by przerwać: ", "~s"),
+            case Innn of
+                {ok, _} -> 
+                    halt();
+                {error, _} -> halt()
+            end
     end.
 
-loop(0) -> halt();
-loop(N) -> loop(N-1).
 
 spawn_buttons(-1) ->
     io:format("\n")
@@ -70,7 +73,7 @@ spawn_buttons(-1) ->
 
 spawn_buttons(FloorsAmount) ->
     Button = spawn(el, button, [FloorsAmount]),
-    io:format("Tworzenie guzika ~p\n", [FloorsAmount]),
+    % io:format("Tworzenie guzika ~p\n", [FloorsAmount]),
     [{buttons, Buttons}] = ets:lookup(pids, buttons),
     ets:insert(pids, {buttons, lists:append(Buttons,[Button]) }),
     spawn_buttons(FloorsAmount-1).
@@ -91,15 +94,6 @@ send(Floor) ->
     [{cpid, ComputerPID}] = ets:lookup(pids, cpid),
     ComputerPID ! {call, Floor}.
 
-%%COMPUTER
-
-
-
-
-%ELEVATOR
-
-
-
 
 drawing(Draw) ->
     if Draw ->
@@ -108,12 +102,12 @@ drawing(Draw) ->
 
                 [{floors, FloorsAmount}] = ets:lookup(globals, floors),
                 io:format(os:cmd(clear)),
-                draw_elevator(FloorsAmount, FirstElevPos, SecElevPos),
+                draw_elevator(FloorsAmount, FirstElevPos, SecElevPos, 3, 3),
                 drawing(Draw);
             {draw_elevator, Floor} ->
                 [{floors, FloorsAmount}] = ets:lookup(globals, floors),
                 io:format(os:cmd(clear)),
-                draw_elevator(FloorsAmount, Floor),
+                draw_elevator(FloorsAmount, Floor, 3, 3),
                 drawing(Draw)
         end;
     true -> 
@@ -125,6 +119,14 @@ drawing(Draw) ->
         end
     end.
         
+
+draw_elevator(FloorsAmount, FirstElevPos, SecElevPos,_,_)  ->
+        io:format("-----------SYMULACJA WINDY--------------"),
+        draw_elevator(FloorsAmount, FirstElevPos, SecElevPos).
+
+draw_elevator(FloorsAmount, Floor,_,_)  ->
+        io:format("-----------SYMULACJA WINDY--------------"),
+        draw_elevator(FloorsAmount, Floor).
 
 draw_elevator(-1, _)  ->
     io:format("\n\n");
